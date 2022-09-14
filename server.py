@@ -22,23 +22,34 @@ class Server:
         conn, addr = self.soc.accept()
 
         while True:
-            # msg = self.recv_msg(conn)
             msg_len = conn.recv(self.header).decode(self.format)
             if not msg_len:
                 break
             msg = conn.recv(int(msg_len)).decode(self.format)
 
-            if not msg:
-                break
             print(f"message received from client {conn} -> {msg}")
-            # msg = conn.recv(self.header).decode(self.format)
+
             if msg == "cwd":
-                proc = subprocess.run(msg, capture_output=True)
+                proc = subprocess.run("pwd", capture_output=True)
                 if proc.returncode:
                     exit(1)
-                print(proc.stdout)
+                self.send_msg(proc.stdout.decode(), conn)
+
+            elif msg == "ls":
+                proc = subprocess.run("ls", capture_output=True)
+                if proc.returncode:
+                    exit(1)
+                self.send_msg(proc.stdout.decode(), conn)
+
+            elif msg[:2] == "cd":
+                cmd = msg.split()
+                proc = subprocess.run(cmd, capture_output=True)
+                if proc.returncode:
+                    exit(1)
+                self.send_msg(proc.stdout.decode(), conn)
 
     def send_msg(self, msg, soc):
+        msg = self.encrypt_msg(msg, "caesar")
         msg_len = len(msg)
         send_msg_len = str(msg_len).encode(self.format)
         send_msg_len += b" " * (self.header - len(send_msg_len))
@@ -47,9 +58,35 @@ class Server:
 
     def recv_msg(self, soc):
         msg_len = soc.recv(self.header).decode(self.format)
-        # print(msg_len)
-        # exit(1)
         msg = soc.recv(int(msg_len)).decode(self.format)
+        msg = self.decrypt_msg(msg, "caesar")
+
+        return msg
+
+    def encrypt_msg(self, msg, mode=None, offset=2):
+        if mode is None:
+            return msg
+
+        if mode == "caesar":
+            for i in range(len(msg)):
+                msg[i] = msg[i] + offset
+
+        if mode == "transpose":
+            msg = msg[::-1]
+
+        return msg
+
+    def decrypt_msg(self, msg, mode=None, offset=2):
+        if mode is None:
+            return msg
+
+        if mode == "caesar":
+            for i in range(len(msg)):
+                msg[i] = msg[i] - offset
+
+        if mode == "transpose":
+            msg = msg[::-1]
+
         return msg
 
 
