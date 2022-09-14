@@ -12,16 +12,28 @@ class Client:
 
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client.connect((self.server, self.port))
-        print("Successfully connected with server!")
+        print("> Successfully connected with server!")
 
         self.send_msg(self.username)
-        self.send_msg("cwd")
+
+        while True:
+            print("> ", end="")
+            cmd = input()
+            if cmd == "!q":
+                self.client.close()
+                break
+            self.send_msg(cmd)
+            msg = self.recv_msg()
+            if msg is None:
+                break
+
+            print(msg)
 
     def send_msg(self, msg):
         # what if msg length is greater than header (msg > 64 bytes)
         # break msg into multiple pieces
 
-        msg = self.encrypt_msg(msg, "caesar")
+        msg = self.encrypt_msg(msg, "transpose")
         msg_len = len(msg)
         send_msg_len = str(msg_len).encode(self.format)
         send_msg_len += b" " * (self.header - len(send_msg_len))
@@ -30,37 +42,42 @@ class Client:
 
     def recv_msg(self):
         msg_len = self.client.recv(self.header).decode(self.format)
+        if not msg_len:
+            return None
         msg = self.client.recv(int(msg_len)).decode(self.format)
-        msg = self.decrypt_msg(msg, "caesar")
-        print(f"message received from server -> {msg}")
+        msg = self.decrypt_msg(msg, "transpose")
+
+        return msg
 
     def encrypt_msg(self, msg, mode=None, offset=2):
         if mode is None:
             return msg
 
+        encrypted_msg = ""
         if mode == "caesar":
-            for i in range(len(msg)):
-                msg[i] = chr(ord(msg[i]) + offset)
+            for i in msg:
+                encrypted_msg += chr(ord(i) + offset)
 
         if mode == "transpose":
-            msg = msg[::-1]
+            encrypted_msg = msg[::-1]
 
-        return msg
+        return encrypted_msg
 
     def decrypt_msg(self, msg, mode=None, offset=2):
         if mode is None:
             return msg
 
+        decrypted_msg = ""
         if mode == "caesar":
-            for i in range(len(msg)):
-                msg[i] = msg[i] - offset
+            for i in msg:
+                decrypted_msg += chr(ord(i) - offset)
 
         if mode == "transpose":
-            msg = msg[::-1]
+            decrypted_msg = msg[::-1]
 
-        return msg
+        return decrypted_msg
 
 
-ip =
-port =
+ip = "10.0.2.15"
+port = 5555
 c = Client(ip, port, "test_user")
