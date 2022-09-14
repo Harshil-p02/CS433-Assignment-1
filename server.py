@@ -47,6 +47,29 @@ class Server:
                     pass
                 self.send_msg(os.getcwd(), conn)
 
+            elif msg[:3] == "dwd":
+                _, file = msg.split()
+                self.send_msg("BEGIN_DWD", conn)
+                with open(file, "r") as f:
+                    data = f.read(4096)
+                    while data:
+                        self.send_msg(data, conn)
+                        data = f.read(4096)
+                self.send_msg("END_DWD", conn)
+                self.send_msg(f"Download of {file} completed", conn)
+
+            elif msg[:3] == "upd":
+                _, file = msg.split()
+                if self.recv_msg(conn) == "BEGIN_UPD":
+                    with open(file, "w") as f:
+                        while True:
+                            data = self.recv_msg(conn)
+                            if data == "END_UPD":
+                                break
+                            f.write(data)
+                self.send_msg(f"Upload of {file} completed", conn)
+
+
     def send_msg(self, msg, soc):
         msg = self.encrypt_msg(msg, "transpose")
         msg_len = len(msg)

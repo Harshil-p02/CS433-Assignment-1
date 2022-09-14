@@ -19,9 +19,32 @@ class Client:
         while True:
             print("> ", end="")
             cmd = input()
+            cmd = cmd.strip()
             if cmd == "!q":
                 self.client.close()
                 break
+            if cmd[:3] == "dwd":
+                _, file = cmd.split()
+                self.send_msg(cmd)
+                if self.recv_msg() == "BEGIN_DWD":
+                    with open(file, "w") as f:
+                        while True:
+                            msg = self.recv_msg()
+                            if msg == "END_DWD":
+                                break
+                            f.write(msg)
+
+            if cmd[:3] == "upd":
+                _, file = cmd.split()
+                self.send_msg(cmd)
+                self.send_msg("BEGIN_UPD")
+                with open(file, "r") as f:
+                    data = f.read(4096)
+                    while data:
+                        self.send_msg(data)
+                        data = f.read(4096)
+                self.send_msg("END_UPD")
+
             self.send_msg(cmd)
             msg = self.recv_msg()
             if msg is None:
