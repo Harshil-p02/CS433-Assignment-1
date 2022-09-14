@@ -69,7 +69,7 @@ class Server:
 
         if mode == "caesar":
             for i in range(len(msg)):
-                msg[i] = msg[i] + offset
+                msg[i] = chr(ord(msg[i]) + offset)
 
         if mode == "transpose":
             msg = msg[::-1]
