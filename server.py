@@ -1,5 +1,6 @@
 import socket
 import subprocess
+import os
 
 
 class Server:
@@ -22,34 +23,32 @@ class Server:
         conn, addr = self.soc.accept()
 
         while True:
-            msg_len = conn.recv(self.header).decode(self.format)
-            if not msg_len:
+            msg = self.recv_msg(conn)
+            if msg is None:
                 break
-            msg = conn.recv(int(msg_len)).decode(self.format)
 
             print(f"message received from client {conn} -> {msg}")
 
             if msg == "cwd":
-                proc = subprocess.run("pwd", capture_output=True)
-                if proc.returncode:
-                    exit(1)
-                self.send_msg(proc.stdout.decode(), conn)
+                proc = os.getcwd()
+                self.send_msg(proc, conn)
 
             elif msg == "ls":
-                proc = subprocess.run("ls", capture_output=True)
+                proc = subprocess.run(["ls", "-l"], capture_output=True, text=True)
                 if proc.returncode:
                     exit(1)
-                self.send_msg(proc.stdout.decode(), conn)
+                self.send_msg(proc.stdout, conn)
 
             elif msg[:2] == "cd":
                 cmd = msg.split()
-                proc = subprocess.run(cmd, capture_output=True)
-                if proc.returncode:
-                    exit(1)
-                self.send_msg(proc.stdout.decode(), conn)
+                try:
+                    os.chdir(cmd[1])
+                except:
+                    pass
+                self.send_msg(os.getcwd(), conn)
 
     def send_msg(self, msg, soc):
-        msg = self.encrypt_msg(msg, "caesar")
+        msg = self.encrypt_msg(msg, "transpose")
         msg_len = len(msg)
         send_msg_len = str(msg_len).encode(self.format)
         send_msg_len += b" " * (self.header - len(send_msg_len))
@@ -58,8 +57,10 @@ class Server:
 
     def recv_msg(self, soc):
         msg_len = soc.recv(self.header).decode(self.format)
+        if not msg_len:
+            return None
         msg = soc.recv(int(msg_len)).decode(self.format)
-        msg = self.decrypt_msg(msg, "caesar")
+        msg = self.decrypt_msg(msg, "transpose")
 
         return msg
 
@@ -67,29 +68,31 @@ class Server:
         if mode is None:
             return msg
 
+        encrypted_msg = ""
         if mode == "caesar":
-            for i in range(len(msg)):
-                msg[i] = chr(ord(msg[i]) + offset)
+            for i in msg:
+                encrypted_msg += chr(ord(i) + offset)
 
         if mode == "transpose":
-            msg = msg[::-1]
+            encrypted_msg = msg[::-1]
 
-        return msg
+        return encrypted_msg
 
     def decrypt_msg(self, msg, mode=None, offset=2):
         if mode is None:
             return msg
 
+        decrypted_msg = ""
         if mode == "caesar":
-            for i in range(len(msg)):
-                msg[i] = msg[i] - offset
+            for i in msg:
+                decrypted_msg += chr(ord(i) - offset)
 
         if mode == "transpose":
-            msg = msg[::-1]
+            decrypted_msg = msg[::-1]
 
-        return msg
+        return decrypted_msg
 
 
-ip =
-port =
+ip = "192.168.56.1"
+port = 5555
 s = Server(ip, port)
