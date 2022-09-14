@@ -21,6 +21,7 @@ class Client:
         # what if msg length is greater than header (msg > 64 bytes)
         # break msg into multiple pieces
 
+        msg = self.encrypt_msg(msg, "caesar")
         msg_len = len(msg)
         send_msg_len = str(msg_len).encode(self.format)
         send_msg_len += b" " * (self.header - len(send_msg_len))
@@ -30,13 +31,34 @@ class Client:
     def recv_msg(self):
         msg_len = self.client.recv(self.header).decode(self.format)
         msg = self.client.recv(int(msg_len)).decode(self.format)
+        msg = self.decrypt_msg(msg, "caesar")
         print(f"message received from server -> {msg}")
 
-    def encrypt_msg(self):
-        pass
+    def encrypt_msg(self, msg, mode=None, offset=2):
+        if mode is None:
+            return msg
 
-    def decrypt_msg(self):
-        pass
+        if mode == "caesar":
+            for i in range(len(msg)):
+                msg[i] = msg[i] + offset
+
+        if mode == "transpose":
+            msg = msg[::-1]
+
+        return msg
+
+    def decrypt_msg(self, msg, mode=None, offset=2):
+        if mode is None:
+            return msg
+
+        if mode == "caesar":
+            for i in range(len(msg)):
+                msg[i] = msg[i] - offset
+
+        if mode == "transpose":
+            msg = msg[::-1]
+
+        return msg
 
 
 ip =
