@@ -89,6 +89,14 @@ class Client:
                     self.send_msg("END_UPD", mode)
                     print(self.recv_msg(self.encryption))
 
+            elif cmd[:2] == "cd":
+                self.send_msg(cmd, self.encryption)
+                status = self.recv_msg(self.encryption)
+                msg = self.recv_msg(self.encryption)
+                if status != "OK":
+                    print("Error in changing directory")
+                print(msg)
+
             else:
                 self.send_msg(cmd, self.encryption)
                 msg = self.recv_msg(self.encryption)
@@ -98,9 +106,6 @@ class Client:
                 print(msg)
 
     def send_msg(self, msg, mode):
-        # what if msg length is greater than header (msg > 64 bytes)
-        # break msg into multiple pieces
-
         msg = self.encrypt_msg(msg, mode)
         msg_len = len(msg)
         send_msg_len = str(msg_len).encode(self.format)
